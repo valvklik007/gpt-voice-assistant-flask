@@ -5,28 +5,45 @@ from services.speech import TextToSpeechOpenAI
 from services.gpt import AiAgentGpt
 from dotenv import load_dotenv
 import uuid
+import json
+import sys
+
+sys.stdout.reconfigure(line_buffering=True)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '1yjbw6AGpFLoRucwhfZUdB5iwRVmlj7y2npt20_JlqOpVG8R51GqSBrXjkOV'
 UPLOAD_FOLDER = "media"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+SESSION_DIR = "sessions"
+os.makedirs(SESSION_DIR, exist_ok=True)
 
-agents = {}
 load_dotenv()
 openai_key = os.getenv("OPENAI_API_KEY")
 deepgram_key = os.getenv("DEEPGRAM_API_KEY")
+
+
+def load_messages(session_id):
+    path = os.path.join(SESSION_DIR, f"{session_id}.json")
+    if not os.path.exists(path):
+        return [{"role": "system", "content": "Ты полезный ассистент"}]
+
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_messages(session_id: str, messages: list):
+    path = os.path.join(SESSION_DIR, f"{session_id}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(messages, f, ensure_ascii=False, indent=2)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+
 @app.route('/upload_audio', methods=['POST'])
 def upload_audio():
     if "user_id" not in session:
         session["user_id"] = str(uuid.uuid4())
-        agents[session["user_id"]] = AiAgentGpt(token_key=openai_key)
-    elif session["user_id"] not in agents:
-        agents[session["user_id"]] = AiAgentGpt(token_key=openai_key)
 
     audio = request.files['audio']
     file_output = f"{uuid.uuid4()}.mp3"
@@ -34,10 +51,16 @@ def upload_audio():
     path_output = os.path.join(UPLOAD_FOLDER, file_output)
     audio.save(path_file)
 
-    agent = agents[session["user_id"]]
-    agent.setSystemPrompt('Ты должен отвечать очень коротко, в пару предложений')
     text  = SpeechToText(deepgram_key).responseOnlyText(path_file)
+
+    agent = AiAgentGpt(token_key=openai_key)
+    mess_session = load_messages(session["user_id"])
+    agent.setStoryManual(mess_session)
+    agent.setSystemPrompt("Ты должен отвечать очень коротко, в пару предложений")
+
     response_text = agent.getMessagesGtp(text)
+    save_messages(session["user_id"], agent.getMessages())
+
     TextToSpeechOpenAI(api_key=openai_key).createAudio(text=response_text, output_name_file=path_output)
 
     return jsonify({

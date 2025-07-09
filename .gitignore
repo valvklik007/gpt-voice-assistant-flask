@@ -4,3 +4,5 @@ __pycache__
 .env
 media/*
 !media/.gitkeep
+sessions/*
+!sessions/.gitkeep
