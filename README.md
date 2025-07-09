@@ -27,6 +27,6 @@ DEEPGRAM_API_KEY=your_deepgram_key_here
 ```
 ### Запуск через Docker (рекомендуется)
 ```bash
-docker-compose up --build
+docker-compose up -d --build
 ```
 Приложение будет доступно: http://127.0.0.1:8888
