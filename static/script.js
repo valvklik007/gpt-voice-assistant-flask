@@ -44,10 +44,13 @@ startBtn.addEventListener("click", async () => {
             fileId = uploadData.audio_url; // сервер должен вернуть уникальный ID
             textOu = uploadData.text;
 
+            if (uploadData.error === "no result"){
+                aiText.textContent = "❌ Ошибка при загрузке, перезагрузите страницу ! " + uploadData.error;
+            }
             // Ждём готовности ответа
             await pollForResult(fileId, textOu);
         } catch (err) {
-            aiText.textContent = "❌ Ошибка при загрузке: " + err.message;
+            aiText.textContent = "❌ Ошибка при загрузке, перезагрузите страницу ! Ошибка: " + err.message;
         }
     };
 
@@ -81,14 +84,15 @@ async function pollForResult(id, textOu) {
                 audioPlayer.play();
             } else if (data.status === "processing") {
                 if (stopLimit === 30){
-                    aiText.textContent = "❌ Ошибка при обработке на сервере.";
+                    aiText.textContent = "❌ Ошибка при обработке на сервере. Обновите страницу !";
                 }else{
                     stopLimit ++;
                     setTimeout(poll, interval); // Пробуем снова через 2 сек
                 }
+            } else {
+                 aiText.textContent = "❌ Ошибка при обработке на сервере. Обновите страницу !";
             }
         };
-
         await poll();
     } catch (err) {
         aiText.textContent = "❌ Ошибка при получении ответа: " + err.message;

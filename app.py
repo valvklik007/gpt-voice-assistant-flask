@@ -1,3 +1,4 @@
+from distutils.log import debug
 from flask import Flask, render_template, request, jsonify, session, Response
 import os
 from services.speech import SpeechToText
@@ -11,7 +12,7 @@ import sys
 sys.stdout.reconfigure(line_buffering=True)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '1yjbw6AGpFLoRucwhfZUdB5iwRVmlj7y2npt20_JlqOpVG8R51GqSBrXjkOV'
+app.config['SECRET_KEY'] = '1yjbw6AGpFLoRucwhfZUdBfS#334ffff5iwRVmlj7y2npt20_JlqOpVG8R51GqSBrXjkOV'
 UPLOAD_FOLDER = "media"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 SESSION_DIR = "sessions"
@@ -51,17 +52,22 @@ def upload_audio():
     path_output = os.path.join(UPLOAD_FOLDER, file_output)
     audio.save(path_file)
 
-    text  = SpeechToText(deepgram_key).responseOnlyText(path_file)
+    try:
+        text  = SpeechToText(deepgram_key).responseOnlyText(path_file)
 
-    agent = AiAgentGpt(token_key=openai_key)
-    mess_session = load_messages(session["user_id"])
-    agent.setStoryManual(mess_session)
-    agent.setSystemPrompt("Ты должен отвечать очень коротко, в пару предложений")
+        agent = AiAgentGpt(token_key=openai_key)
+        mess_session = load_messages(session["user_id"])
+        agent.setStoryManual(mess_session)
+        agent.setSystemPrompt("Ты должен отвечать очень коротко, в пару предложений")
 
-    response_text = agent.getMessagesGtp(text)
-    save_messages(session["user_id"], agent.getMessages())
+        response_text = agent.getMessagesGtp(text)
+        save_messages(session["user_id"], agent.getMessages())
 
-    TextToSpeechOpenAI(api_key=openai_key).createAudio(text=response_text, output_name_file=path_output)
+        TextToSpeechOpenAI(api_key=openai_key).createAudio(text=response_text, output_name_file=path_output)
+    except:
+        return jsonify({
+            "error": "no result",
+        })
 
     return jsonify({
         "text": f"Вы спросили: {text}",
@@ -95,3 +101,4 @@ def stream_audio(filename):
 
 if __name__ == '__main__':
     app.run(debug=True)
+    # app.run(host='0.0.0.0', port=5000, debug=False)
