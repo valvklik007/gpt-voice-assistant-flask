@@ -22,3 +22,4 @@ class SpeechToText:
 
     def setToken(self, token):
         self.__token = token
+        self.__updateHeaders()
