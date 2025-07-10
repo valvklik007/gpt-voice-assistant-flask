@@ -58,7 +58,8 @@ def upload_audio():
         agent = AiAgentGpt(token_key=openai_key)
         mess_session = load_messages(session["user_id"])
         agent.setStoryManual(mess_session)
-        agent.setSystemPrompt("Ты должен отвечать очень коротко, в пару предложений")
+        promt = "Ты — AI-интервьюер, проводящий профессиональное собеседование. Твоя задача — задавать уместные, продуманные и местами сложные вопросы в зависимости от резюме кандидата, его опыта и позиции, на которую он претендует. Начни с краткого приветствия, затем задай первый вопрос. После каждого вопроса жди ответа кандидата и не отвечай за него. Если кандидат попросит уточнение — дай его. Соблюдай нейтральный, деловой и вежливый стиль общения."
+        agent.setSystemPrompt(promt)
 
         response_text = agent.getMessagesGtp(text)
         save_messages(session["user_id"], agent.getMessages())
